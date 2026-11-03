@@ -260,19 +260,80 @@ body {
 .shayari {
   font-family: var(--body);
   text-align: center;
-  color: #ffffff8c;
-  text-shadow: var(--text-shadow);
-  max-width: 22rem;
+  color: #fffffffa;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.95), 0 0 24px rgba(244, 162, 97, 0.5);
+  max-width: 34rem;
   margin: 0;
-  font-size: clamp(0.85rem, 2vw, 0.98rem);
-  font-weight: 500;
+  font-size: clamp(1.18rem, 3.2vw, 1.55rem);
+  font-weight: 700;
   line-height: 1.35;
   cursor: pointer;
-  transition: color var(--swift);
+  transition: all 0.35s ease;
+  letter-spacing: 0.015em;
+  padding: 0.45rem 1.4rem;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
 }
 
 .shayari:hover {
-  color: #ffffffe6;
+  color: #fff;
+  border-color: rgba(244, 162, 97, 0.6);
+  transform: scale(1.03);
+  box-shadow: 0 8px 30px rgba(244, 162, 97, 0.25);
+}
+
+/* Indian Truck Horn Button */
+.horn-btn-wrap {
+  margin-top: 0.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.truck-horn-btn {
+  font-family: var(--body);
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #05080c;
+  font-weight: 800;
+  font-size: clamp(0.95rem, 2.2vw, 1.12rem);
+  letter-spacing: 0.02em;
+  padding: 0.55rem 1.6rem;
+  border-radius: 999px;
+  border: 2px solid #fef3c7;
+  box-shadow: 0 4px 20px rgba(245, 158, 11, 0.5), inset 0 2px 0 rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+  text-transform: uppercase;
+}
+
+.truck-horn-btn:hover {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  transform: translateY(-2px) scale(1.04);
+  box-shadow: 0 8px 25px rgba(245, 158, 11, 0.7), inset 0 2px 0 rgba(255, 255, 255, 0.8);
+}
+
+.truck-horn-btn:active, .truck-horn-btn.is-honking {
+  transform: translateY(2px) scale(0.96);
+  background: linear-gradient(135deg, #b45309, #d97706);
+  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.4);
+}
+
+@keyframes hornVibrate {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-12deg) scale(1.15); }
+  75% { transform: rotate(12deg) scale(1.15); }
+}
+
+.truck-horn-btn.is-honking svg {
+  animation: hornVibrate 0.15s ease-in-out infinite;
 }
 
 .credit {

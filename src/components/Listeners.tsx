@@ -1,25 +1,23 @@
 import { useState, useEffect } from 'react';
-import { calculateLiveListeners } from '../utils/listeners';
+import { presenceManager } from '../utils/presence';
 
 export function Listeners() {
-  const [count, setCount] = useState<number | null>(null);
+  const [count, setCount] = useState<number>(presenceManager.getCount());
 
   useEffect(() => {
-    const update = () => setCount(calculateLiveListeners());
-    update();
-    const interval = window.setInterval(update, 6000);
-    return () => window.clearInterval(interval);
+    const unsubscribe = presenceManager.subscribe((activeCount) => {
+      setCount(activeCount);
+    });
+    return unsubscribe;
   }, []);
 
-  if (count === null) {
-    return <div className="listeners" aria-hidden="true" />;
-  }
-
   return (
-    <div className="listeners">
+    <div className="listeners" title={`${count} active listener${count > 1 ? 's' : ''} on the road`}>
       <span className="listeners__dot" aria-hidden="true" />
-      <span className="listeners__count">{count.toLocaleString('en-IN')}</span>
-      <span className="listeners__label">listening</span>
+      <span className="listeners__count font-mono font-bold">{count.toLocaleString('en-IN')}</span>
+      <span className="listeners__label font-semibold tracking-wider uppercase">
+        {count === 1 ? 'LISTENING' : 'LISTENING'}
+      </span>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useId } from 'react';
+import { HIGHWAY_PLAYLIST, type TrackItem } from '../data/playlist';
 
 declare global {
   interface Window {
@@ -7,13 +8,6 @@ declare global {
   }
 }
 
-interface MusicPillProps {
-  playlistId?: string;
-  autoplay?: boolean;
-}
-
-const DEFAULT_PLAYLIST = 'PLgObA3pAqvOh87Z03QG8Z4xE-uqlAWSBy';
-
 function formatTime(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds < 0) return '0:00';
   const m = Math.floor(seconds / 60);
@@ -21,95 +15,62 @@ function formatTime(seconds: number): string {
   return `${m}:${s < 10 ? '0' : ''}${s}`;
 }
 
-export const MusicPill: React.FC<MusicPillProps> = ({
-  playlistId = DEFAULT_PLAYLIST,
-  autoplay = false,
-}) => {
+export const MusicPill: React.FC = () => {
   const instanceId = useId().replace(/:/g, '');
   const hostId = `yt-host-${instanceId}`;
 
   const playerRef = useRef<any>(null);
   const progressTimerRef = useRef<number | null>(null);
-  const cueCheckTimerRef = useRef<number | null>(null);
-  const railRef = useRef<HTMLDivElement | null>(null);
   const isSeekingRef = useRef<boolean>(false);
+  const railRef = useRef<HTMLDivElement | null>(null);
   const titleWrapRef = useRef<HTMLDivElement | null>(null);
   const titleSpanRef = useRef<HTMLSpanElement | null>(null);
 
-  const [isReady, setIsReady] = useState(false);
-  const [hasData, setHasData] = useState(false);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [trackIndex, setTrackIndex] = useState<number>(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [title, setTitle] = useState('');
-  const [artist, setArtist] = useState('');
-  const [coverUrl, setCoverUrl] = useState('');
+  const [liveDuration, setLiveDuration] = useState(HIGHWAY_PLAYLIST[0].duration);
   const [isTitleScrolling, setIsTitleScrolling] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const stopProgressTimer = useCallback(() => {
+  const currentTrack: TrackItem = HIGHWAY_PLAYLIST[trackIndex];
+
+  // Stop polling timer
+  const stopTimer = useCallback(() => {
     if (progressTimerRef.current !== null) {
       window.clearInterval(progressTimerRef.current);
       progressTimerRef.current = null;
     }
   }, []);
 
-  const startProgressTimer = useCallback((player: any) => {
-    stopProgressTimer();
+  // Start polling timer
+  const startTimer = useCallback(() => {
+    stopTimer();
     progressTimerRef.current = window.setInterval(() => {
-      if (!isSeekingRef.current) {
+      if (!isSeekingRef.current && playerRef.current) {
         try {
-          const cur = player.getCurrentTime() || 0;
+          const cur = playerRef.current.getCurrentTime() || 0;
           setCurrentTime(cur);
-          const dur = player.getDuration();
-          if (Number.isFinite(dur) && dur > 0) setDuration(dur);
+          const dur = playerRef.current.getDuration();
+          if (Number.isFinite(dur) && dur > 0) {
+            setLiveDuration(dur);
+          }
         } catch {}
       }
     }, 250);
-  }, [stopProgressTimer]);
+  }, [stopTimer]);
 
-  const extractTrackData = useCallback((player: any) => {
-    try {
-      const data = player.getVideoData();
-      const videoId = data?.video_id;
-      const t = data?.title?.trim();
-
-      if (!t || t === 'Private video' || !videoId) return false;
-
-      setTitle(t);
-      setArtist(data.author?.trim() || 'Highway Records');
-      setCoverUrl(`https://i.ytimg.com/vi/${videoId}/hq720.jpg`);
-
-      const dur = player.getDuration();
-      if (Number.isFinite(dur) && dur > 0) setDuration(dur);
-
-      setHasData(true);
-      return true;
-    } catch {
-      return false;
-    }
-  }, []);
-
-  // Initialize YouTube IFrame API
+  // Load YouTube IFrame API
   useEffect(() => {
     let isMounted = true;
     let localPlayer: any = null;
 
-    const stopCueCheck = () => {
-      if (cueCheckTimerRef.current !== null) {
-        window.clearInterval(cueCheckTimerRef.current);
-        cueCheckTimerRef.current = null;
-      }
-    };
-
-    const loadYTAPI = (): Promise<any> => {
+    const initYT = (): Promise<any> => {
       if (window.YT?.Player) return Promise.resolve(window.YT);
 
       return new Promise((resolve, reject) => {
         const checkReady = () => {
           if (window.YT?.Player) resolve(window.YT);
-          else reject(new Error('YT namespace missing'));
+          else reject(new Error('YT namespace not ready'));
         };
 
         const prevReady = window.onYouTubeIframeAPIReady;
@@ -126,7 +87,7 @@ export const MusicPill: React.FC<MusicPillProps> = ({
               checkReady();
             } else if (Date.now() - start > 10000) {
               window.clearInterval(timer);
-              reject(new Error('YT timeout'));
+              reject(new Error('YT API timed out'));
             }
           }, 50);
           return;
@@ -135,18 +96,19 @@ export const MusicPill: React.FC<MusicPillProps> = ({
         const tag = document.createElement('script');
         tag.src = 'https://www.youtube.com/iframe_api';
         tag.async = true;
-        tag.onerror = () => reject(new Error('Failed to load YT API'));
+        tag.onerror = () => reject(new Error('Failed to load YT script'));
         document.head.appendChild(tag);
       });
     };
 
-    loadYTAPI()
+    initYT()
       .then(yt => {
         if (!isMounted) return;
 
         localPlayer = new yt.Player(hostId, {
           height: 1,
           width: 1,
+          videoId: currentTrack.id,
           playerVars: {
             autoplay: 0,
             controls: 0,
@@ -155,42 +117,12 @@ export const MusicPill: React.FC<MusicPillProps> = ({
             modestbranding: 1,
             playsinline: 1,
             rel: 0,
-            listType: 'playlist',
-            list: playlistId,
             origin: window.location.origin,
           },
           events: {
             onReady: (event: any) => {
               if (!isMounted) return;
               playerRef.current = event.target;
-              event.target.cuePlaylist({
-                listType: 'playlist',
-                list: playlistId,
-                index: 0,
-              });
-              setIsReady(true);
-
-              // Poll until track data is loaded
-              let attempts = 0;
-              cueCheckTimerRef.current = window.setInterval(() => {
-                if (!isMounted) {
-                  stopCueCheck();
-                  return;
-                }
-                attempts++;
-                if (extractTrackData(event.target) || attempts > 35) {
-                  stopCueCheck();
-                  if (attempts > 35 && !hasData) {
-                    setTitle('Highway Dhaba Mix');
-                    setArtist('Indian Truck Wala Playlist');
-                    setHasData(true);
-                  }
-                }
-              }, 200);
-
-              if (autoplay) {
-                event.target.playVideo();
-              }
             },
             onStateChange: (event: any) => {
               if (!isMounted) return;
@@ -198,59 +130,43 @@ export const MusicPill: React.FC<MusicPillProps> = ({
               if (state === 1) {
                 // Playing
                 setIsPlaying(true);
-                extractTrackData(event.target);
-                startProgressTimer(event.target);
+                startTimer();
               } else if (state === 2) {
                 // Paused
                 setIsPlaying(false);
-                stopProgressTimer();
-                setCurrentTime(event.target.getCurrentTime() || 0);
+                stopTimer();
               } else if (state === 0) {
-                // Ended
-                stopProgressTimer();
+                // Track ended: auto advance to next song!
+                stopTimer();
                 setIsPlaying(false);
-                setCurrentTime(0);
-              } else if (state === 3 || state === 5) {
-                extractTrackData(event.target);
+                handleNext();
               }
-            },
-            onError: () => {
-              if (!isMounted) return;
-              setErrorMessage('Trying next song...');
-              setTitle(prev => prev || 'Highway Hits');
-              setArtist(prev => prev || 'Tap play to listen');
-              setHasData(true);
             },
           },
         });
       })
-      .catch(() => {
-        if (!isMounted) return;
-        setErrorMessage('Could not load player. Check connection.');
-        setHasData(true);
+      .catch(err => {
+        console.warn('YouTube API init error:', err);
       });
 
     return () => {
       isMounted = false;
-      stopProgressTimer();
-      stopCueCheck();
+      stopTimer();
       try {
         localPlayer?.destroy();
       } catch {}
       playerRef.current = null;
     };
-  }, [playlistId, hostId, autoplay, extractTrackData, startProgressTimer, stopProgressTimer]);
+  }, []);
 
-  // Transition from skeleton to loaded state with pleasant delay
+  // Update track duration when trackIndex changes
   useEffect(() => {
-    if (!hasData) return;
-    const timer = window.setTimeout(() => setIsLoaded(true), 900);
-    return () => window.clearTimeout(timer);
-  }, [hasData]);
+    setCurrentTime(0);
+    setLiveDuration(currentTrack.duration);
+  }, [trackIndex, currentTrack.duration]);
 
-  // Title marquee scroll if text overflows
+  // Handle Title Overflow / Marquee
   useEffect(() => {
-    if (!isLoaded) return;
     const wrap = titleWrapRef.current;
     const span = titleSpanRef.current;
     if (!wrap || !span) return;
@@ -262,63 +178,83 @@ export const MusicPill: React.FC<MusicPillProps> = ({
     checkOverflow();
     window.addEventListener('resize', checkOverflow);
     return () => window.removeEventListener('resize', checkOverflow);
-  }, [title, isLoaded]);
+  }, [currentTrack.title]);
 
-  // Play / Pause toggle
+  // Play / Pause Toggle
   const togglePlay = useCallback(() => {
     const player = playerRef.current;
-    if (player && isReady) {
-      setErrorMessage(null);
+    if (!player) return;
+
+    try {
+      if (isPlaying) {
+        player.pauseVideo();
+      } else {
+        player.playVideo();
+      }
+    } catch {
+      // Fallback: reload track and play
       try {
-        const state = player.getPlayerState();
-        if (state === 1 || state === 3) {
-          player.pauseVideo();
-        } else {
-          player.playVideo();
-        }
+        player.loadVideoById(currentTrack.id);
+      } catch {}
+    }
+  }, [isPlaying, currentTrack.id]);
+
+  // Next Track
+  const handleNext = useCallback(() => {
+    const nextIndex = (trackIndex + 1) % HIGHWAY_PLAYLIST.length;
+    setTrackIndex(nextIndex);
+    const nextSong = HIGHWAY_PLAYLIST[nextIndex];
+
+    const player = playerRef.current;
+    if (player) {
+      try {
+        player.loadVideoById(nextSong.id);
+        setIsPlaying(true);
       } catch {
-        setErrorMessage('Click play again');
+        player.cueVideoById(nextSong.id);
       }
     }
-  }, [isReady]);
+  }, [trackIndex]);
 
   // Previous Track
   const handlePrevious = useCallback(() => {
     const player = playerRef.current;
-    if (player && isReady) {
-      setErrorMessage(null);
+    if (currentTime > 3 && player) {
+      // Rewind to start of current song
       try {
-        if ((player.getCurrentTime() || 0) > 3) {
-          player.seekTo(0, true);
-          setCurrentTime(0);
-        } else {
-          player.previousVideo();
-        }
+        player.seekTo(0, true);
+        setCurrentTime(0);
       } catch {}
+      return;
     }
-  }, [isReady]);
 
-  // Next Track
-  const handleNext = useCallback(() => {
-    const player = playerRef.current;
-    if (player && isReady) {
-      setErrorMessage(null);
+    const prevIndex = (trackIndex - 1 + HIGHWAY_PLAYLIST.length) % HIGHWAY_PLAYLIST.length;
+    setTrackIndex(prevIndex);
+    const prevSong = HIGHWAY_PLAYLIST[prevIndex];
+
+    if (player) {
       try {
-        player.nextVideo();
-      } catch {}
+        player.loadVideoById(prevSong.id);
+        setIsPlaying(true);
+      } catch {
+        player.cueVideoById(prevSong.id);
+      }
     }
-  }, [isReady]);
+  }, [trackIndex, currentTime]);
 
   // Seek functionality
-  const executeSeek = useCallback((ratio: number) => {
-    const player = playerRef.current;
-    if (!player || !isReady || duration <= 0) return;
-    const target = Math.min(1, Math.max(0, ratio)) * duration;
-    try {
-      player.seekTo(target, true);
-      setCurrentTime(target);
-    } catch {}
-  }, [duration, isReady]);
+  const executeSeek = useCallback(
+    (ratio: number) => {
+      const player = playerRef.current;
+      if (!player || liveDuration <= 0) return;
+      const target = Math.min(1, Math.max(0, ratio)) * liveDuration;
+      try {
+        player.seekTo(target, true);
+        setCurrentTime(target);
+      } catch {}
+    },
+    [liveDuration]
+  );
 
   const getRailRatio = useCallback((clientX: number) => {
     const rail = railRef.current;
@@ -327,34 +263,41 @@ export const MusicPill: React.FC<MusicPillProps> = ({
     return rect.width <= 0 ? 0 : (clientX - rect.left) / rect.width;
   }, []);
 
-  const handlePointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    if (!isReady || duration <= 0) return;
-    e.preventDefault();
-    isSeekingRef.current = true;
-    e.currentTarget.setPointerCapture(e.pointerId);
-    executeSeek(getRailRatio(e.clientX));
-  }, [duration, isReady, executeSeek, getRailRatio]);
-
-  const handlePointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    if (isSeekingRef.current) {
+  const handlePointerDown = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (liveDuration <= 0) return;
+      e.preventDefault();
+      isSeekingRef.current = true;
+      e.currentTarget.setPointerCapture(e.pointerId);
       executeSeek(getRailRatio(e.clientX));
-    }
-  }, [executeSeek, getRailRatio]);
+    },
+    [liveDuration, executeSeek, getRailRatio]
+  );
 
-  const handlePointerUp = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    if (isSeekingRef.current) {
-      isSeekingRef.current = false;
-      try {
-        e.currentTarget.releasePointerCapture(e.pointerId);
-      } catch {}
-      executeSeek(getRailRatio(e.clientX));
-    }
-  }, [executeSeek, getRailRatio]);
+  const handlePointerMove = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (isSeekingRef.current) {
+        executeSeek(getRailRatio(e.clientX));
+      }
+    },
+    [executeSeek, getRailRatio]
+  );
 
-  // Global Keyboard Shortcuts (Space / K to play, Arrow keys to seek)
+  const handlePointerUp = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (isSeekingRef.current) {
+        isSeekingRef.current = false;
+        try {
+          e.currentTarget.releasePointerCapture(e.pointerId);
+        } catch {}
+        executeSeek(getRailRatio(e.clientX));
+      }
+    },
+    [executeSeek, getRailRatio]
+  );
+
+  // Global Keyboard Navigation (Space / K = play/pause, Left/Right = Seek 5s)
   useEffect(() => {
-    if (!isLoaded || !isReady) return;
-
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       const target = e.target as HTMLElement;
@@ -371,18 +314,18 @@ export const MusicPill: React.FC<MusicPillProps> = ({
         togglePlay();
       } else if (e.key === 'ArrowRight') {
         e.preventDefault();
-        executeSeek((currentTime + 5) / duration);
+        executeSeek((currentTime + 5) / liveDuration);
       } else if (e.key === 'ArrowLeft') {
         e.preventDefault();
-        executeSeek((currentTime - 5) / duration);
+        executeSeek((currentTime - 5) / liveDuration);
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isLoaded, isReady, togglePlay, executeSeek, currentTime, duration]);
+  }, [togglePlay, executeSeek, currentTime, liveDuration]);
 
-  const progressPercent = duration > 0 ? Math.min(100, (currentTime / duration) * 100) : 0;
+  const progressPercent = liveDuration > 0 ? Math.min(100, (currentTime / liveDuration) * 100) : 0;
 
   return (
     <div className="music-pill-root">
@@ -391,178 +334,149 @@ export const MusicPill: React.FC<MusicPillProps> = ({
         <div id={hostId} />
       </div>
 
-      {isLoaded ? (
-        <div className="music-pill" aria-label="YouTube Music player">
-          <div className="music-pill__sheen" aria-hidden="true" />
+      <div className="music-pill" aria-label="Highway Music Player">
+        <div className="music-pill__sheen" aria-hidden="true" />
 
-          {/* Spinning Album Disc Cover */}
-          <div className={`music-pill__cover ${isPlaying ? 'is-spinning' : ''}`}>
-            {coverUrl ? (
-              <img
-                src={coverUrl}
-                alt=""
-                draggable={false}
-                onError={e => {
-                  const img = e.currentTarget;
-                  if (img.src.includes('hq720')) {
-                    img.src = img.src.replace('hq720.jpg', 'hqdefault.jpg');
-                  }
-                }}
-              />
-            ) : (
-              <span className="music-pill__cover-fallback" aria-hidden="true" />
-            )}
-            <span className="music-pill__cover-hub" aria-hidden="true" />
-          </div>
-
-          {/* Metadata & Controls Body */}
-          <div className="music-pill__body">
-            <div className="music-pill__row">
-              {/* Song Title & Artist */}
-              <div className="music-pill__meta">
-                <div className="music-pill__title-wrap" ref={titleWrapRef}>
-                  <span
-                    ref={titleSpanRef}
-                    className={`music-pill__title ${
-                      isTitleScrolling ? 'music-pill__title--scroll' : ''
-                    }`}
-                  >
-                    {title || 'Highway Dhaba Playlist'}
-                  </span>
-                </div>
-                <p className="music-pill__artist">
-                  {errorMessage || artist || 'Truck Wala Music'}
-                </p>
-              </div>
-
-              {/* Controls */}
-              <div className="music-pill__controls">
-                {/* Previous */}
-                <button
-                  type="button"
-                  aria-label="Previous track"
-                  disabled={!isReady}
-                  onClick={handlePrevious}
-                  className="music-pill__btn"
-                >
-                  <svg width="22" height="22" viewBox="0 0 28 28" fill="none">
-                    <circle cx="14" cy="14" r="13" fill="rgba(255,255,255,0.19)" />
-                    <path
-                      d="M17.5 19L12.5 14L17.5 9"
-                      stroke="currentColor"
-                      strokeWidth="2.2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </button>
-
-                {/* Play / Pause Toggle */}
-                <button
-                  type="button"
-                  aria-label={isPlaying ? 'Pause' : 'Play'}
-                  disabled={!isReady}
-                  onClick={togglePlay}
-                  className="music-pill__btn music-pill__btn--primary"
-                >
-                  {isPlaying ? (
-                    <svg width="26" height="26" viewBox="0 0 32 32" fill="none">
-                      <circle cx="16" cy="16" r="15" fill="rgba(255,255,255,0.23)" />
-                      <rect x="11" y="10" width="3.5" height="12" rx="1" fill="currentColor" />
-                      <rect x="17.5" y="10" width="3.5" height="12" rx="1" fill="currentColor" />
-                    </svg>
-                  ) : (
-                    <svg width="26" height="26" viewBox="0 0 32 32" fill="none">
-                      <circle cx="16" cy="16" r="15" fill="rgba(255,255,255,0.23)" />
-                      <polygon points="12,10 12,22 22,16" fill="currentColor" />
-                    </svg>
-                  )}
-                </button>
-
-                {/* Next */}
-                <button
-                  type="button"
-                  aria-label="Next track"
-                  disabled={!isReady}
-                  onClick={handleNext}
-                  className="music-pill__btn"
-                >
-                  <svg width="22" height="22" viewBox="0 0 28 28" fill="none">
-                    <circle cx="14" cy="14" r="13" fill="rgba(255,255,255,0.19)" />
-                    <path
-                      d="M10.5 9L15.5 14L10.5 19"
-                      stroke="currentColor"
-                      strokeWidth="2.2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </button>
-              </div>
-            </div>
-
-            {/* Seekable Progress Bar */}
-            <div className="music-pill__progress">
-              <span className="music-pill__time">{formatTime(currentTime)}</span>
-              <div
-                ref={railRef}
-                className="music-pill__rail music-pill__rail--seek"
-                role="slider"
-                tabIndex={isReady && duration > 0 ? 0 : -1}
-                aria-label="Seek track"
-                aria-valuemin={0}
-                aria-valuemax={Math.floor(duration) || 0}
-                aria-valuenow={Math.floor(currentTime)}
-                aria-valuetext={`${formatTime(currentTime)} of ${formatTime(duration)}`}
-                aria-disabled={!isReady || duration <= 0}
-                onPointerDown={handlePointerDown}
-                onPointerMove={handlePointerMove}
-                onPointerUp={handlePointerUp}
-                onPointerCancel={handlePointerUp}
-              >
-                <div className="music-pill__fill" style={{ width: `${progressPercent}%` }} />
-                <span
-                  className="music-pill__knob"
-                  style={{ left: `${progressPercent}%` }}
-                  aria-hidden="true"
-                />
-              </div>
-              <span className="music-pill__time">{formatTime(duration)}</span>
-            </div>
-          </div>
-        </div>
-      ) : (
-        /* Skeleton Loading State */
+        {/* Spinning Vinyl Cover Art */}
         <div
-          className="music-pill music-pill--loading"
-          aria-busy="true"
-          aria-label="Loading playlist"
-          role="status"
+          className={`music-pill__cover ${isPlaying ? 'is-spinning' : ''}`}
+          onClick={togglePlay}
+          style={{ cursor: 'pointer' }}
+          title={isPlaying ? 'Click to pause' : 'Click to play'}
         >
-          <div className="music-pill__sheen" aria-hidden="true" />
-          <div className="music-pill__cover music-pill__skel-cover" aria-hidden="true">
-            <span className="music-pill__skel-pulse" />
+          <img
+            src={currentTrack.thumbnail}
+            alt={currentTrack.title}
+            draggable={false}
+            onError={e => {
+              const img = e.currentTarget;
+              if (img.src.includes('hq720')) {
+                img.src = img.src.replace('hq720.jpg', 'hqdefault.jpg');
+              }
+            }}
+          />
+          <span className="music-pill__cover-hub" aria-hidden="true" />
+        </div>
+
+        {/* Track Info & Controls */}
+        <div className="music-pill__body">
+          <div className="music-pill__row">
+            {/* Title & Artist */}
+            <div className="music-pill__meta">
+              <div className="music-pill__title-wrap" ref={titleWrapRef}>
+                <span
+                  ref={titleSpanRef}
+                  className={`music-pill__title ${
+                    isTitleScrolling ? 'music-pill__title--scroll' : ''
+                  }`}
+                >
+                  {currentTrack.title}
+                </span>
+              </div>
+              <p className="music-pill__artist">{currentTrack.artist}</p>
+            </div>
+
+            {/* Playback Buttons */}
+            <div className="music-pill__controls">
+              {/* Previous */}
+              <button
+                type="button"
+                aria-label="Previous highway song"
+                onClick={handlePrevious}
+                className="music-pill__btn"
+                title="Previous track"
+              >
+                <svg width="22" height="22" viewBox="0 0 28 28" fill="none">
+                  <circle cx="14" cy="14" r="13" fill="rgba(255,255,255,0.19)" />
+                  <path
+                    d="M17.5 19L12.5 14L17.5 9"
+                    stroke="currentColor"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+
+              {/* Play / Pause Toggle */}
+              <button
+                type="button"
+                aria-label={isPlaying ? 'Pause' : 'Play'}
+                onClick={togglePlay}
+                className="music-pill__btn music-pill__btn--primary"
+                title={isPlaying ? 'Pause (Space / K)' : 'Play (Space / K)'}
+              >
+                {isPlaying ? (
+                  <svg width="26" height="26" viewBox="0 0 32 32" fill="none">
+                    <circle cx="16" cy="16" r="15" fill="rgba(255,255,255,0.23)" />
+                    <rect x="11" y="10" width="3.5" height="12" rx="1" fill="currentColor" />
+                    <rect x="17.5" y="10" width="3.5" height="12" rx="1" fill="currentColor" />
+                  </svg>
+                ) : (
+                  <svg width="26" height="26" viewBox="0 0 32 32" fill="none">
+                    <circle cx="16" cy="16" r="15" fill="rgba(255,255,255,0.23)" />
+                    <polygon points="12,10 12,22 22,16" fill="currentColor" />
+                  </svg>
+                )}
+              </button>
+
+              {/* Next */}
+              <button
+                type="button"
+                aria-label="Next highway song"
+                onClick={handleNext}
+                className="music-pill__btn"
+                title="Next track"
+              >
+                <svg width="22" height="22" viewBox="0 0 28 28" fill="none">
+                  <circle cx="14" cy="14" r="13" fill="rgba(255,255,255,0.19)" />
+                  <path
+                    d="M10.5 9L15.5 14L10.5 19"
+                    stroke="currentColor"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+            </div>
           </div>
-          <div className="music-pill__body">
-            <div className="music-pill__row">
-              <div className="music-pill__meta">
-                <div className="music-pill__skel-line music-pill__skel-line--title" />
-                <div className="music-pill__skel-line music-pill__skel-line--artist" />
-              </div>
-              <div className="music-pill__controls" aria-hidden="true">
-                <span className="music-pill__skel-dot" />
-                <span className="music-pill__skel-dot music-pill__skel-dot--lg" />
-                <span className="music-pill__skel-dot" />
-              </div>
+
+          {/* Seekable Progress Bar */}
+          <div className="music-pill__progress">
+            <span className="music-pill__time">{formatTime(currentTime)}</span>
+            <div
+              ref={railRef}
+              className="music-pill__rail music-pill__rail--seek"
+              role="slider"
+              tabIndex={0}
+              aria-label="Seek track"
+              aria-valuemin={0}
+              aria-valuemax={Math.floor(liveDuration) || 0}
+              aria-valuenow={Math.floor(currentTime)}
+              aria-valuetext={`${formatTime(currentTime)} of ${formatTime(liveDuration)}`}
+              onPointerDown={handlePointerDown}
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePointerUp}
+              onPointerCancel={handlePointerUp}
+            >
+              <div className="music-pill__fill" style={{ width: `${progressPercent}%` }} />
+              <span
+                className="music-pill__knob"
+                style={{ left: `${progressPercent}%` }}
+                aria-hidden="true"
+              />
             </div>
-            <div className="music-pill__progress">
-              <span className="music-pill__skel-time" />
-              <div className="music-pill__rail music-pill__skel-rail" />
-              <span className="music-pill__skel-time" />
-            </div>
+            <span className="music-pill__time">{formatTime(liveDuration)}</span>
           </div>
         </div>
-      )}
+      </div>
+
+      {/* Track Index Badge */}
+      <div className="flex items-center justify-between text-[11px] text-white/50 px-3 mt-1.5 font-mono">
+        <span>Track {trackIndex + 1} of {HIGHWAY_PLAYLIST.length}</span>
+        <span className="text-white/40">Shortcuts: Space/K (Play) • Arrows (Seek)</span>
+      </div>
     </div>
   );
 };
