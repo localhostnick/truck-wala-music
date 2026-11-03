@@ -527,15 +527,81 @@ body {
 
 /* Hidden YouTube Host */
 .music-pill__yt-host {
-  clip: rect(0, 0, 0, 0);
+  position: fixed;
+  bottom: -9999px;
+  right: -9999px;
+  width: 250px;
+  height: 250px;
+  opacity: 0.001;
   pointer-events: none;
-  border: 0;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  padding: 0;
-  position: absolute;
-  overflow: hidden;
+  z-index: -999;
+}
+
+/* YouTube Music Corner Badge Button */
+.ytm-corner-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.75rem;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 999px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  color: #ffffff;
+  text-decoration: none;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+.ytm-corner-badge:hover {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 0, 0, 0.65);
+  transform: scale(1.05);
+  box-shadow: 0 4px 20px rgba(255, 0, 0, 0.35);
+}
+
+.ytm-corner-badge__text {
+  font-family: var(--ui);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #fff;
+}
+
+/* Playlist Guide CTA Button */
+.playlist-guide__cta-container {
+  margin-top: 2.5rem;
+}
+
+.playlist-guide__btn-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.85rem 1.75rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(31, 41, 55, 0.85), rgba(17, 24, 39, 0.95));
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: #ffffff;
+  font-family: var(--ui);
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.playlist-guide__btn-cta:hover {
+  background: linear-gradient(135deg, rgba(55, 65, 81, 0.95), rgba(31, 41, 55, 0.95));
+  border-color: rgba(244, 162, 97, 0.7);
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 12px 35px rgba(244, 162, 97, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.playlist-guide__btn-cta:active {
+  transform: translateY(1px) scale(0.98);
 }
 
 @keyframes music-pill-marquee {

@@ -41,14 +41,22 @@ export function PlaylistGuide() {
           </div>
         </div>
 
-        <a
-          className="playlist-guide__cta"
-          href="https://music.youtube.com/playlist?list=PLgObA3pAqvOh87Z03QG8Z4xE-uqlAWSBy"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Open the playlist on YouTube Music
-        </a>
+        {/* Prominent CTA Button instead of plain text link */}
+        <div className="playlist-guide__cta-container">
+          <a
+            className="playlist-guide__btn-cta"
+            href="https://music.youtube.com/playlist?list=PLgObA3pAqvOh87Z03QG8Z4xE-uqlAWSBy"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+              <circle cx="12" cy="12" r="11" fill="#ff0000" />
+              <circle cx="12" cy="12" r="7.5" fill="none" stroke="#ffffff" strokeWidth="1.6" />
+              <polygon points="10,8.5 16,12 10,15.5" fill="#ffffff" />
+            </svg>
+            <span>Open Playlist on YouTube Music</span>
+          </a>
+        </div>
       </div>
     </section>
   );

@@ -106,8 +106,8 @@ export const MusicPill: React.FC = () => {
         if (!isMounted) return;
 
         localPlayer = new yt.Player(hostId, {
-          height: 1,
-          width: 1,
+          height: 200,
+          width: 200,
           videoId: currentTrack.id,
           playerVars: {
             autoplay: 0,
@@ -138,7 +138,6 @@ export const MusicPill: React.FC = () => {
               } else if (state === 0) {
                 // Track ended: auto advance to next song!
                 stopTimer();
-                setIsPlaying(false);
                 handleNext();
               }
             },
@@ -188,38 +187,54 @@ export const MusicPill: React.FC = () => {
     try {
       if (isPlaying) {
         player.pauseVideo();
+        setIsPlaying(false);
       } else {
         player.playVideo();
+        setIsPlaying(true);
       }
     } catch {
       try {
-        player.loadVideoById(currentTrack.id);
+        player.loadVideoById({
+          videoId: currentTrack.id,
+          startSeconds: 0,
+        });
+        player.playVideo();
+        setIsPlaying(true);
       } catch {}
     }
   }, [isPlaying, currentTrack.id]);
 
-  // Next Track
+  // Next Track - Instant & Glitch-Free
   const handleNext = useCallback(() => {
     const nextIndex = (trackIndex + 1) % HIGHWAY_PLAYLIST.length;
     setTrackIndex(nextIndex);
     const nextSong = HIGHWAY_PLAYLIST[nextIndex];
 
+    setCurrentTime(0);
+    setLiveDuration(nextSong.duration);
+    setIsPlaying(true);
+
     const player = playerRef.current;
     if (player) {
       try {
-        player.loadVideoById(nextSong.id);
-        setIsPlaying(true);
+        player.loadVideoById({
+          videoId: nextSong.id,
+          startSeconds: 0,
+        });
+        player.playVideo();
       } catch {
-        player.cueVideoById(nextSong.id);
+        try {
+          player.loadVideoById(nextSong.id, 0);
+          player.playVideo();
+        } catch {}
       }
     }
   }, [trackIndex]);
 
-  // Previous Track
+  // Previous Track - Instant & Glitch-Free
   const handlePrevious = useCallback(() => {
     const player = playerRef.current;
     if (currentTime > 3 && player) {
-      // Rewind to start of current song
       try {
         player.seekTo(0, true);
         setCurrentTime(0);
@@ -231,12 +246,22 @@ export const MusicPill: React.FC = () => {
     setTrackIndex(prevIndex);
     const prevSong = HIGHWAY_PLAYLIST[prevIndex];
 
+    setCurrentTime(0);
+    setLiveDuration(prevSong.duration);
+    setIsPlaying(true);
+
     if (player) {
       try {
-        player.loadVideoById(prevSong.id);
-        setIsPlaying(true);
+        player.loadVideoById({
+          videoId: prevSong.id,
+          startSeconds: 0,
+        });
+        player.playVideo();
       } catch {
-        player.cueVideoById(prevSong.id);
+        try {
+          player.loadVideoById(prevSong.id, 0);
+          player.playVideo();
+        } catch {}
       }
     }
   }, [trackIndex, currentTime]);
@@ -328,7 +353,7 @@ export const MusicPill: React.FC = () => {
 
   return (
     <div className="music-pill-root">
-      {/* Hidden YouTube IFrame */}
+      {/* Hidden YouTube IFrame with unthrottled dimensions */}
       <div className="music-pill__yt-host" aria-hidden="true">
         <div id={hostId} />
       </div>
