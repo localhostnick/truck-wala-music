@@ -192,7 +192,6 @@ export const MusicPill: React.FC = () => {
         player.playVideo();
       }
     } catch {
-      // Fallback: reload track and play
       try {
         player.loadVideoById(currentTrack.id);
       } catch {}
@@ -334,148 +333,135 @@ export const MusicPill: React.FC = () => {
         <div id={hostId} />
       </div>
 
-      <div className="music-pill" aria-label="Highway Music Player">
-        <div className="music-pill__sheen" aria-hidden="true" />
+      {/* Sleek Coverless Glassy Player Container */}
+      <div className="glassy-card-player" aria-label="Highway Music Player">
+        <div className="glassy-card-player__sheen" aria-hidden="true" />
 
-        {/* Spinning Vinyl Cover Art */}
-        <div
-          className={`music-pill__cover ${isPlaying ? 'is-spinning' : ''}`}
-          onClick={togglePlay}
-          style={{ cursor: 'pointer' }}
-          title={isPlaying ? 'Click to pause' : 'Click to play'}
-        >
-          <img
-            src={currentTrack.thumbnail}
-            alt={currentTrack.title}
-            draggable={false}
-            onError={e => {
-              const img = e.currentTarget;
-              if (img.src.includes('hq720')) {
-                img.src = img.src.replace('hq720.jpg', 'hqdefault.jpg');
-              }
-            }}
-          />
-          <span className="music-pill__cover-hub" aria-hidden="true" />
-        </div>
-
-        {/* Track Info & Controls */}
-        <div className="music-pill__body">
-          <div className="music-pill__row">
-            {/* Title & Artist */}
-            <div className="music-pill__meta">
-              <div className="music-pill__title-wrap" ref={titleWrapRef}>
-                <span
-                  ref={titleSpanRef}
-                  className={`music-pill__title ${
-                    isTitleScrolling ? 'music-pill__title--scroll' : ''
-                  }`}
-                >
-                  {currentTrack.title}
-                </span>
-              </div>
-              <p className="music-pill__artist">{currentTrack.artist}</p>
-            </div>
-
-            {/* Playback Buttons */}
-            <div className="music-pill__controls">
-              {/* Previous */}
-              <button
-                type="button"
-                aria-label="Previous highway song"
-                onClick={handlePrevious}
-                className="music-pill__btn"
-                title="Previous track"
-              >
-                <svg width="22" height="22" viewBox="0 0 28 28" fill="none">
-                  <circle cx="14" cy="14" r="13" fill="rgba(255,255,255,0.19)" />
-                  <path
-                    d="M17.5 19L12.5 14L17.5 9"
-                    stroke="currentColor"
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </button>
-
-              {/* Play / Pause Toggle */}
-              <button
-                type="button"
-                aria-label={isPlaying ? 'Pause' : 'Play'}
-                onClick={togglePlay}
-                className="music-pill__btn music-pill__btn--primary"
-                title={isPlaying ? 'Pause (Space / K)' : 'Play (Space / K)'}
-              >
-                {isPlaying ? (
-                  <svg width="26" height="26" viewBox="0 0 32 32" fill="none">
-                    <circle cx="16" cy="16" r="15" fill="rgba(255,255,255,0.23)" />
-                    <rect x="11" y="10" width="3.5" height="12" rx="1" fill="currentColor" />
-                    <rect x="17.5" y="10" width="3.5" height="12" rx="1" fill="currentColor" />
-                  </svg>
-                ) : (
-                  <svg width="26" height="26" viewBox="0 0 32 32" fill="none">
-                    <circle cx="16" cy="16" r="15" fill="rgba(255,255,255,0.23)" />
-                    <polygon points="12,10 12,22 22,16" fill="currentColor" />
-                  </svg>
-                )}
-              </button>
-
-              {/* Next */}
-              <button
-                type="button"
-                aria-label="Next highway song"
-                onClick={handleNext}
-                className="music-pill__btn"
-                title="Next track"
-              >
-                <svg width="22" height="22" viewBox="0 0 28 28" fill="none">
-                  <circle cx="14" cy="14" r="13" fill="rgba(255,255,255,0.19)" />
-                  <path
-                    d="M10.5 9L15.5 14L10.5 19"
-                    stroke="currentColor"
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </button>
-            </div>
-          </div>
-
-          {/* Seekable Progress Bar */}
-          <div className="music-pill__progress">
-            <span className="music-pill__time">{formatTime(currentTime)}</span>
-            <div
-              ref={railRef}
-              className="music-pill__rail music-pill__rail--seek"
-              role="slider"
-              tabIndex={0}
-              aria-label="Seek track"
-              aria-valuemin={0}
-              aria-valuemax={Math.floor(liveDuration) || 0}
-              aria-valuenow={Math.floor(currentTime)}
-              aria-valuetext={`${formatTime(currentTime)} of ${formatTime(liveDuration)}`}
-              onPointerDown={handlePointerDown}
-              onPointerMove={handlePointerMove}
-              onPointerUp={handlePointerUp}
-              onPointerCancel={handlePointerUp}
+        {/* 1. Track Info (Title & Artist) */}
+        <div className="glassy-card-player__meta">
+          <div className="glassy-card-player__title-wrap" ref={titleWrapRef}>
+            <span
+              ref={titleSpanRef}
+              className={`glassy-card-player__title ${
+                isTitleScrolling ? 'music-pill__title--scroll' : ''
+              }`}
             >
-              <div className="music-pill__fill" style={{ width: `${progressPercent}%` }} />
-              <span
-                className="music-pill__knob"
-                style={{ left: `${progressPercent}%` }}
-                aria-hidden="true"
-              />
-            </div>
-            <span className="music-pill__time">{formatTime(liveDuration)}</span>
+              {currentTrack.title}
+            </span>
+          </div>
+          <p className="glassy-card-player__artist">{currentTrack.artist}</p>
+        </div>
+
+        {/* 2. Straight Line Progress Bar (Kitna Song Play Hua) */}
+        <div className="glassy-card-player__progress-line-wrap">
+          <div
+            ref={railRef}
+            className="glassy-card-player__rail"
+            role="slider"
+            tabIndex={0}
+            aria-label="Seek track"
+            aria-valuemin={0}
+            aria-valuemax={Math.floor(liveDuration) || 0}
+            aria-valuenow={Math.floor(currentTime)}
+            aria-valuetext={`${formatTime(currentTime)} of ${formatTime(liveDuration)}`}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerUp}
+          >
+            {/* Background line */}
+            <div className="glassy-card-player__rail-bg" />
+            {/* Active progress fill */}
+            <div
+              className="glassy-card-player__rail-fill"
+              style={{ width: `${progressPercent}%` }}
+            />
+            {/* Smooth glowing slider knob */}
+            <span
+              className="glassy-card-player__rail-knob"
+              style={{ left: `${progressPercent}%` }}
+              aria-hidden="true"
+            />
           </div>
         </div>
-      </div>
 
-      {/* Track Index Badge */}
-      <div className="flex items-center justify-between text-[11px] text-white/50 px-3 mt-1.5 font-mono">
-        <span>Track {trackIndex + 1} of {HIGHWAY_PLAYLIST.length}</span>
-        <span className="text-white/40">Shortcuts: Space/K (Play) • Arrows (Seek)</span>
+        {/* 3. Bottom Row: Current Time, Play/Forward/Backward Controls, Total Duration */}
+        <div className="glassy-card-player__bottom-row">
+          {/* Current Time */}
+          <span className="glassy-card-player__time-current font-mono">
+            {formatTime(currentTime)}
+          </span>
+
+          {/* Controls: Backward, Play/Pause, Forward */}
+          <div className="glassy-card-player__controls">
+            {/* Previous */}
+            <button
+              type="button"
+              aria-label="Previous song"
+              onClick={handlePrevious}
+              className="glassy-ctrl-btn"
+              title="Previous song"
+            >
+              <svg width="22" height="22" viewBox="0 0 28 28" fill="none">
+                <circle cx="14" cy="14" r="13" fill="rgba(255,255,255,0.18)" />
+                <path
+                  d="M17.5 19L12.5 14L17.5 9"
+                  stroke="currentColor"
+                  strokeWidth="2.4"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
+
+            {/* Play / Pause (Center Big Button) */}
+            <button
+              type="button"
+              aria-label={isPlaying ? 'Pause' : 'Play'}
+              onClick={togglePlay}
+              className="glassy-ctrl-btn glassy-ctrl-btn--primary"
+              title={isPlaying ? 'Pause (Space / K)' : 'Play (Space / K)'}
+            >
+              {isPlaying ? (
+                <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+                  <circle cx="16" cy="16" r="15" fill="rgba(255,255,255,0.26)" />
+                  <rect x="11" y="9.5" width="3.5" height="13" rx="1" fill="currentColor" />
+                  <rect x="17.5" y="9.5" width="3.5" height="13" rx="1" fill="currentColor" />
+                </svg>
+              ) : (
+                <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+                  <circle cx="16" cy="16" r="15" fill="rgba(255,255,255,0.26)" />
+                  <polygon points="12.5,9.5 12.5,22.5 23,16" fill="currentColor" />
+                </svg>
+              )}
+            </button>
+
+            {/* Next */}
+            <button
+              type="button"
+              aria-label="Next song"
+              onClick={handleNext}
+              className="glassy-ctrl-btn"
+              title="Next song"
+            >
+              <svg width="22" height="22" viewBox="0 0 28 28" fill="none">
+                <circle cx="14" cy="14" r="13" fill="rgba(255,255,255,0.18)" />
+                <path
+                  d="M10.5 9L15.5 14L10.5 19"
+                  stroke="currentColor"
+                  strokeWidth="2.4"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
+          </div>
+
+          {/* Total Duration */}
+          <span className="glassy-card-player__time-total font-mono">
+            {formatTime(liveDuration)}
+          </span>
+        </div>
       </div>
     </div>
   );
