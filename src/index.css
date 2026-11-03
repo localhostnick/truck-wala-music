@@ -525,16 +525,17 @@ body {
   transform: scale(0.92);
 }
 
-/* Hidden YouTube Host */
+/* Hidden YouTube Host - Fixed at top-left & portaled so it never affects document height or scroll */
 .music-pill__yt-host {
   position: fixed;
-  bottom: -9999px;
-  right: -9999px;
-  width: 250px;
-  height: 250px;
-  opacity: 0.001;
+  top: 0;
+  left: 0;
+  width: 200px;
+  height: 200px;
+  opacity: 0.0001;
   pointer-events: none;
-  z-index: -999;
+  z-index: -9999;
+  overflow: hidden;
 }
 
 /* YouTube Music Corner Badge Button */

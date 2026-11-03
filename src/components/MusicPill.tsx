@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useId } from 'react';
+import { createPortal } from 'react-dom';
 import { HIGHWAY_PLAYLIST, type TrackItem } from '../data/playlist';
 
 declare global {
@@ -353,10 +354,14 @@ export const MusicPill: React.FC = () => {
 
   return (
     <div className="music-pill-root">
-      {/* Hidden YouTube IFrame with unthrottled dimensions */}
-      <div className="music-pill__yt-host" aria-hidden="true">
-        <div id={hostId} />
-      </div>
+      {/* Hidden YouTube IFrame portaled to body to completely avoid layout/scroll expansion */}
+      {typeof document !== 'undefined' &&
+        createPortal(
+          <div className="music-pill__yt-host" aria-hidden="true">
+            <div id={hostId} />
+          </div>,
+          document.body
+        )}
 
       {/* Sleek Coverless Glassy Player Container */}
       <div className="glassy-card-player" aria-label="Highway Music Player">
