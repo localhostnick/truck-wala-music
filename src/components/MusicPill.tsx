@@ -26,6 +26,7 @@ export const MusicPill: React.FC = () => {
   const railRef = useRef<HTMLDivElement | null>(null);
   const titleWrapRef = useRef<HTMLDivElement | null>(null);
   const titleSpanRef = useRef<HTMLSpanElement | null>(null);
+  const handleNextRef = useRef<() => void>(() => {});
 
   const [trackIndex, setTrackIndex] = useState<number>(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -139,7 +140,7 @@ export const MusicPill: React.FC = () => {
               } else if (state === 0) {
                 // Track ended: auto advance to next song!
                 stopTimer();
-                handleNext();
+                handleNextRef.current();
               }
             },
           },
@@ -157,13 +158,8 @@ export const MusicPill: React.FC = () => {
       } catch {}
       playerRef.current = null;
     };
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // Update track duration when trackIndex changes
-  useEffect(() => {
-    setCurrentTime(0);
-    setLiveDuration(currentTrack.duration);
-  }, [trackIndex, currentTrack.duration]);
 
   // Handle Title Overflow / Marquee
   useEffect(() => {
@@ -231,6 +227,10 @@ export const MusicPill: React.FC = () => {
       }
     }
   }, [trackIndex]);
+
+  useEffect(() => {
+    handleNextRef.current = handleNext;
+  }, [handleNext]);
 
   // Previous Track - Instant & Glitch-Free
   const handlePrevious = useCallback(() => {
