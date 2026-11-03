@@ -30,7 +30,7 @@ body {
   user-select: none;
 }
 
-/* Background Layers - New Cinematic Highway Wallpaper */
+/* Background Layers - Original Hand-Painted Truck Wallpaper */
 .bg {
   z-index: 0;
   background-color: #05080c;
@@ -39,19 +39,24 @@ body {
 }
 
 .bg__img {
-  background-image: url("/highway-night.jpg");
-  background-position: center;
+  background-image: url("/hero-mobile.jpg");
+  background-position: 50% 50%;
   background-repeat: no-repeat;
   background-size: cover;
   position: absolute;
   inset: 0;
-  filter: brightness(0.72) contrast(1.08);
+}
+
+@media (min-width: 768px) {
+  .bg__img {
+    background-image: url("/hero-desktop.jpg");
+    background-position: 50% 40%;
+  }
 }
 
 .bg__scrim {
   pointer-events: none;
-  background: radial-gradient(circle at 50% 30%, rgba(0, 0, 0, 0.2) 0%, rgba(5, 8, 12, 0.75) 80%, #05080c 100%),
-              linear-gradient(to bottom, rgba(5, 8, 12, 0.4) 0%, transparent 40%, rgba(5, 8, 12, 0.85) 100%);
+  background: linear-gradient(#0000001a 0%, #0000 32% 62%, #00000061 100%);
   position: absolute;
   inset: 0;
 }
@@ -370,7 +375,8 @@ body {
 
 .glassy-card-player__title {
   font-family: var(--ui);
-  letter-spacing: -0.01em;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   color: #fff;
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
   font-size: clamp(1.05rem, 2.5vw, 1.25rem);
@@ -381,10 +387,11 @@ body {
 
 .glassy-card-player__artist {
   font-family: var(--ui);
-  letter-spacing: 0.01em;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: rgba(255, 255, 255, 0.75);
-  font-size: 0.82rem;
-  font-weight: 400;
+  font-size: 0.8rem;
+  font-weight: 500;
   margin-top: 0.25rem;
 }
 

@@ -337,7 +337,7 @@ export const MusicPill: React.FC = () => {
       <div className="glassy-card-player" aria-label="Highway Music Player">
         <div className="glassy-card-player__sheen" aria-hidden="true" />
 
-        {/* 1. Track Info (Title & Artist) */}
+        {/* 1. Track Info (Title & Artist in ALL CAPS) */}
         <div className="glassy-card-player__meta">
           <div className="glassy-card-player__title-wrap" ref={titleWrapRef}>
             <span
@@ -346,10 +346,10 @@ export const MusicPill: React.FC = () => {
                 isTitleScrolling ? 'music-pill__title--scroll' : ''
               }`}
             >
-              {currentTrack.title}
+              {currentTrack.title.toUpperCase()}
             </span>
           </div>
-          <p className="glassy-card-player__artist">{currentTrack.artist}</p>
+          <p className="glassy-card-player__artist">{currentTrack.artist.toUpperCase()}</p>
         </div>
 
         {/* 2. Straight Line Progress Bar (Kitna Song Play Hua) */}
